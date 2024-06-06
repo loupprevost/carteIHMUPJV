@@ -1,0 +1,189 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+        <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.css"/>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.0/dist/sweetalert2.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.css" />
+        <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.css">
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="icon" href="favicon.ico"/>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Trajet Map</title>
+        <meta name="description" content="Site permettant de faire un trajet entre 5 points maximum et d'observer son altitude !"/>
+        <meta name="author" content="William Noël & Loup Prévost"/>
+        <meta name="keywords" content="map, trajet, altitude"/>
+    </head>
+    <body style='border:0; margin: 0'>
+        <div id='map'></div>
+        <div style="margin-left: 30px;" id="formBlock" class="formBlock">
+            <div style="width: 100%;margin: 5px 0 5px 0;"><span style="margin-left: calc(50% - 35px);font-style:Arial;"><b>Votre trajet</b></span></div>
+            <form id="form" class="formAll">
+                <button name="choice" title="Ajout d'un point" class="input-more waypoint" id="-1"><i class="fa-regular fa-square-plus fa-lg"></i> Ajouter un point</button>
+
+                <div class="divLocation">
+                    <button name="point1Change" title="Afficher Ville/Coordonnées" class="inputChange" onclick="changeInput('point1')" id="point1Change"><i class="fa-solid fa-building"></i></button>
+                    <button name="point1Delete" title="Supprimer le point" class="delete" id="point1Delete"><i class="fa-solid fa-trash-can"></i></button>
+                    <button name="point1Trash" title="Supprimer le contenu" class="trash" style="display:none;" onclick="TrashInput('point1')" id="point1Trash"><i class="fa-solid fa-broom"></i></button>
+                    <input type="text" name="point1City" class="inputCity1" id="point1City" placeholder="Point de départ" />
+                    <input type="text" name="point1Long" class="inputCoorLong1" style="display:none;" id="point1Long" placeholder="Longitude"/>
+                    <input type="text" name="point1Lat" class="inputCoorLat1" style="display:none;" id="point1Lat" placeholder="Latitude"/>
+                </div>
+
+                <button name="plus" title="Ajout d'un point" class="input-more waypoint" id="1-2"><i class="fa-regular fa-square-plus fa-lg"></i> Ajouter un point</button>
+
+                <div class="divLocation">
+                    <button name="point2Change" title="Afficher Ville/Coordonnées" class="inputChange" onclick="changeInput('point2')" id="point2Change"><i class="fa-solid fa-building"></i></button>
+                    <button name="point2Delete" title="Supprimer le point" class="delete" id="point2Delete"><i class="fa-solid fa-trash-can"></i></button>
+                    <button name="point2Trash" title="Supprimer le contenu" class="trash" style="display:none;" onclick="TrashInput('point2')" id="point2Trash"><i class="fa-solid fa-broom"></i></button>
+                    <input type="text" name="point2City" class="inputCity1" id="point2City" placeholder="Point d'arrivée" />
+                    <input type="text" name="point2Long" class="inputCoorLong1" style="display:none;" id="point2Long" placeholder="Longitude"/>
+                    <input type="text" name="point2Lat" class="inputCoorLat1" style="display:none;" id="point2Lat" placeholder="Latitude"/>
+                </div>
+
+                <button name="plus" title="Ajout d'un point" class="input-more waypoint" id="2-"><i class="fa-regular fa-square-plus fa-lg"></i> Ajouter un point</button>
+
+                <input type="submit" value="Générer itinéraire" class="submit">
+            </form>
+            <button class="submit graphGen" title="Affiche un graphique de l'altitude de votre trajet" id="graphiqueGen" hidden>Générer graphique</button>
+            <button class="graphHide" title="Cache un graphique de l'altitude de votre trajet" hidden>Cacher graphique</button>
+        </div>
+        
+        <figure class="highcharts-figure" id="graphique" hidden>
+            <i class="closeGraph fa-solid fa-xmark" style="cursor:pointer;float:right;margin: 5px 5px 0 0;"></i>
+            <span style="float:left;margin-left:50%;transform: translateX(-50%);font-style:Arial;"><b>Graphique de l'altitude</b></span>
+            <div class="elevation-profile-container graphique" style="margin-top:0;" id="graphiqueDiv">
+                <canvas id="route-elevation-chart"></canvas>
+            </div>
+        </figure>
+
+        <script src="https://kit.fontawesome.com/002d626c4c.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+        <script src="https://www.mapquestapi.com/sdk/leaflet/v2.2/mq-map.js?key=S8d7L47mdyAG5nHG09dUnSPJjreUVPeC"></script>
+        <script src="https://www.mapquestapi.com/sdk/leaflet/v2.2/mq-routing.js?key=S8d7L47mdyAG5nHG09dUnSPJjreUVPeC"></script>
+        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.0/dist/sweetalert2.min.js"></script>
+        <script src="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/@raruto/leaflet-elevation@2.2.8/dist/leaflet-elevation.min.css" />
+        <script src="https://unpkg.com/@raruto/leaflet-elevation@2.2.8/dist/leaflet-elevation.min.js"></script>
+        <script src="https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.2/chartjs-plugin-annotation.min.js"></script>
+        <script src="app.js"></script>
+    </body>
+</html>
+<script>
+
+    var graphique = document.getElementById("graphique");
+    var graphiqueDiv = document.getElementById("graphiqueDiv");
+    var hauteurEcran = window.innerHeight;
+
+    var largeurPrecedente = document.getElementById("formBlock").offsetWidth;
+    graphique.style.minWidth= largeurPrecedente;
+    graphiqueDiv.style.minWidth= largeurPrecedente-10;
+
+    var hauteurPrecedente = document.getElementById("formBlock").offsetHeight;
+    graphique.style.top= hauteurPrecedente + 30;
+
+    var hauteurRestant;
+    var ecran30pourcent;
+    var futurHeight;
+
+    setInterval(function() {
+        var hauteurActuelle = document.getElementById("formBlock").offsetHeight;
+        if (hauteurActuelle !== hauteurPrecedente) {
+        // La hauteur a changé
+        graphique.style.top= hauteurActuelle +30;
+        hauteurPrecedente = hauteurActuelle;
+        }
+
+        hauteurRestant = window.innerHeight - hauteurActuelle;
+        hauteurRestant = hauteurRestant - 20;
+
+        if(hauteurRestant <  230)
+        {
+            futurHeight = hauteurRestant - 30;
+            graphique.style.height = futurHeight;
+        }
+        else
+        {
+            graphique.style.height = 200;
+        }
+    }, 100);
+
+    function TrashInput(name)
+    {
+        event.preventDefault();
+        var nameTrash = name+ 'Trash';
+        var nameCity = name+ 'City';
+        var nameLat = name+ 'Lat';
+        var nameLong = name+ 'Long';
+
+        var ElementNameTrash = $(`button[name="${nameTrash}"`)[0];
+        var ElementNameCity = $(`input[name="${nameCity}"`)[0];
+        var ElementNameLat = $(`input[name="${nameLat}"`)[0];
+        var ElementNameLong = $(`input[name="${nameLong}"`)[0];
+
+        ElementNameCity.value = "";
+        ElementNameLat.value = "";
+        ElementNameLong.value = "";
+
+        ElementNameCity.disabled = false;
+        ElementNameCity.classList.replace("inputCity2", "inputCity1");
+        ElementNameTrash.style.display = "none";
+    }
+
+    function changeInput(name)
+    {
+        event.preventDefault();
+        var nameChange = name+ 'Change';
+        var nameCity = name+ 'City';
+        var nameLat = name+ 'Lat';
+        var nameLong = name+ 'Long';
+
+        var ElementNameChange = $(`button[name="${nameChange}"`)[0];
+        var ElementNameCity = $(`input[name="${nameCity}"`)[0];
+        var ElementNameLat = $(`input[name="${nameLat}"`)[0];
+        var ElementNameLong = $(`input[name="${nameLong}"`)[0];
+
+        if(ElementNameCity.style.display == "none")
+        {
+            ElementNameChange.innerHTML=`<i class="fa-solid fa-building"></i>`;
+            ElementNameCity.style.display = "";
+            ElementNameLat.style.display = "none";
+            ElementNameLong.style.display = "none";
+
+            if(ElementNameCity.value != "")
+            {
+                ElementNameCity.classList.replace("inputCity1", "inputCity2")
+            }
+            else
+            {
+                ElementNameCity.classList.replace("inputCity2", "inputCity1")
+            }
+        }
+        else
+        {
+            ElementNameChange.innerHTML=`<i class="fa-solid fa-location-dot"></i>`;
+            ElementNameCity.style.display = "none";
+            ElementNameLat.style.display = "";
+            ElementNameLong.style.display = "";
+
+            if(ElementNameCity.value != "")
+            {
+                ElementNameLat.classList.replace("inputCoorLat1", "inputCoorLat2")
+                ElementNameLong.classList.replace("inputCoorLong1", "inputCoorLong2")
+            }
+            else
+            {
+                ElementNameLat.classList.replace("inputCoorLat2", "inputCoorLat1")
+                ElementNameLong.classList.replace("inputCoorLong2", "inputCoorLong1")
+            }
+        }
+    }
+</script>   
